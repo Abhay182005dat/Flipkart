@@ -99,6 +99,27 @@ def _get_state(request: Request):
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────
+import math
+import numpy as np
+
+def sanitize_json(obj):
+    if isinstance(obj, dict):
+        return {k: sanitize_json(v) for k, v in obj.items()}
+
+    if isinstance(obj, list):
+        return [sanitize_json(v) for v in obj]
+
+    if isinstance(obj, np.integer):
+        return int(obj)
+
+    if isinstance(obj, np.floating):
+        obj = float(obj)
+
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+
+    return obj
 
 @router.post("/events/predict", summary="Full event prediction pipeline")
 async def predict_event(event: EventInput, request: Request):
@@ -113,6 +134,7 @@ async def predict_event(event: EventInput, request: Request):
     state = _get_state(request)
     try:
         result = state.predict_event(event.model_dump())
+        result = sanitize_json(result)
         return result
     except Exception as e:
         logger.exception("Prediction failed")
