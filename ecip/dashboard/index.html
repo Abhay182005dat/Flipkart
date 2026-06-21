@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECIP — Event-Driven Congestion Intelligence Platform</title>
+    <meta name="description" content="Forecasts event impact, computes Event Impact Index (EII), retrieves similar historical incidents, and optimally allocates resources.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg class="logo-svg" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <div>
+                    <h1 class="logo-title">ECIP</h1>
+                    <p class="logo-sub">Congestion Intelligence</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button class="nav-btn active" data-panel="dashboard" id="nav-dashboard">
+                <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                Dashboard
+            </button>
+            <button class="nav-btn" data-panel="predict" id="nav-predict">
+                <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Predict Event
+            </button>
+            <button class="nav-btn" data-panel="optimize" id="nav-optimize">
+                <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
+                Optimize
+            </button>
+            <button class="nav-btn" data-panel="scenarios" id="nav-scenarios">
+                <svg class="nav-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                What-If
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="api-status" id="api-status">
+                <span class="status-dot offline"></span>
+                <span class="status-text">Connecting…</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── Main Content ────────────────────────────────────────────── -->
+    <main class="main-content">
+        <!-- ── Top Bar ──────────────────────────────────────────── -->
+        <header class="topbar">
+            <h2 class="page-title" id="page-title">Dashboard</h2>
+            <div class="topbar-actions">
+                <div class="stat-pill" id="stat-total-events">
+                    <span class="pill-label">Events</span>
+                    <span class="pill-value">—</span>
+                </div>
+                <div class="stat-pill" id="stat-closure-rate">
+                    <span class="pill-label">Closure Rate</span>
+                    <span class="pill-value">—</span>
+                </div>
+                <div class="stat-pill" id="stat-avg-duration">
+                    <span class="pill-label">Avg Duration</span>
+                    <span class="pill-value">—</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── Dashboard Panel ──────────────────────────────────── -->
+        <section class="panel active" id="panel-dashboard">
+            <div class="dashboard-grid">
+                <!-- Map -->
+                <div class="card card-map" id="card-map">
+                    <div class="card-header">
+                        <h3>Live Event Map</h3>
+                        <div class="legend">
+                            <span class="legend-item"><span class="dot dot-critical"></span> Critical</span>
+                            <span class="legend-item"><span class="dot dot-high"></span> High</span>
+                            <span class="legend-item"><span class="dot dot-medium"></span> Medium</span>
+                            <span class="legend-item"><span class="dot dot-low"></span> Low</span>
+                        </div>
+                    </div>
+                    <div id="map" class="map-container"></div>
+                </div>
+
+                <!-- Recent Events -->
+                <div class="card card-events">
+                    <div class="card-header">
+                        <h3>Recent Events</h3>
+                        <select id="filter-cause" class="select-filter">
+                            <option value="">All Causes</option>
+                        </select>
+                    </div>
+                    <div class="events-list" id="events-list">
+                        <div class="loading-spinner">Loading…</div>
+                    </div>
+                </div>
+
+                <!-- Cause Distribution -->
+                <div class="card card-chart">
+                    <div class="card-header"><h3>Event Causes</h3></div>
+                    <div class="chart-container" id="cause-chart"></div>
+                </div>
+
+                <!-- Corridor Distribution -->
+                <div class="card card-chart">
+                    <div class="card-header"><h3>Top Corridors</h3></div>
+                    <div class="chart-container" id="corridor-chart"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Predict Panel ────────────────────────────────────── -->
+        <section class="panel" id="panel-predict">
+            <div class="predict-layout">
+                <!-- Input Form -->
+                <div class="card predict-form-card">
+                    <div class="card-header"><h3>Event Prediction</h3></div>
+                    <form id="predict-form" class="predict-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="inp-event-type">Event Type</label>
+                                <select id="inp-event-type" required>
+                                    <option value="unplanned">Unplanned</option>
+                                    <option value="planned">Planned</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-event-cause">Event Cause</label>
+                                <select id="inp-event-cause" required>
+                                    <option value="vehicle_breakdown">Vehicle Breakdown</option>
+                                    <option value="accident">Accident</option>
+                                    <option value="construction">Construction</option>
+                                    <option value="water_logging">Water Logging</option>
+                                    <option value="pot_holes">Pot Holes</option>
+                                    <option value="tree_fall">Tree Fall</option>
+                                    <option value="congestion">Congestion</option>
+                                    <option value="public_event">Public Event</option>
+                                    <option value="procession">Procession</option>
+                                    <option value="vip_movement">VIP Movement</option>
+                                    <option value="protest">Protest</option>
+                                    <option value="road_conditions">Road Conditions</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-corridor">Corridor</label>
+                                <select id="inp-corridor" required>
+                                    <option value="Non-corridor">Non-corridor</option>
+                                    <option value="Mysore Road">Mysore Road</option>
+                                    <option value="Bellary Road 1">Bellary Road 1</option>
+                                    <option value="Tumkur Road">Tumkur Road</option>
+                                    <option value="Bellary Road 2">Bellary Road 2</option>
+                                    <option value="Hosur Road">Hosur Road</option>
+                                    <option value="ORR North 1">ORR North 1</option>
+                                    <option value="Old Madras Road">Old Madras Road</option>
+                                    <option value="Magadi Road">Magadi Road</option>
+                                    <option value="ORR East 1">ORR East 1</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-priority">Priority</label>
+                                <select id="inp-priority" required>
+                                    <option value="high">High</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-veh-type">Vehicle Type</label>
+                                <select id="inp-veh-type">
+                                    <option value="unknown">Unknown</option>
+                                    <option value="bmtc_bus">BMTC Bus</option>
+                                    <option value="heavy_vehicle">Heavy Vehicle</option>
+                                    <option value="lcv">LCV</option>
+                                    <option value="private_car">Private Car</option>
+                                    <option value="private_bus">Private Bus</option>
+                                    <option value="truck">Truck</option>
+                                    <option value="ksrtc_bus">KSRTC Bus</option>
+                                    <option value="taxi">Taxi</option>
+                                    <option value="auto">Auto</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-datetime">Date & Time</label>
+                                <input type="datetime-local" id="inp-datetime" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-lat">Latitude</label>
+                                <input type="number" id="inp-lat" step="0.0001" value="12.9716" min="12.5" max="13.5" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="inp-lon">Longitude</label>
+                                <input type="number" id="inp-lon" step="0.0001" value="77.5946" min="77.0" max="78.0" required>
+                            </div>
+                            <div class="form-group form-group-checkbox">
+                                <label>
+                                    <input type="checkbox" id="inp-closure"> Requires Road Closure
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-predict" id="btn-predict">
+                            Predict Impact
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Results -->
+                <div class="predict-results" id="predict-results" style="display:none;">
+                    <!-- EII Gauge -->
+                    <div class="card eii-card" id="eii-card">
+                        <div class="card-header"><h3>Event Impact Index</h3></div>
+                        <div class="eii-display">
+                            <div class="eii-gauge" id="eii-gauge">
+                                <svg viewBox="0 0 200 120" class="gauge-svg">
+                                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" stroke-linecap="round"/>
+                                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGradient)" stroke-width="12" stroke-linecap="round" id="gauge-arc" stroke-dasharray="0 251"/>
+                                    <defs>
+                                        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%">
+                                            <stop offset="0%" stop-color="#22c55e"/>
+                                            <stop offset="33%" stop-color="#eab308"/>
+                                            <stop offset="66%" stop-color="#f97316"/>
+                                            <stop offset="100%" stop-color="#ef4444"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <text x="100" y="85" text-anchor="middle" class="gauge-value" id="gauge-value">—</text>
+                                    <text x="100" y="105" text-anchor="middle" class="gauge-label" id="gauge-label">—</text>
+                                </svg>
+                            </div>
+                            <div class="eii-components" id="eii-components"></div>
+                        </div>
+                    </div>
+
+                    <!-- Priority Badge -->
+                    <div class="card priority-card" id="priority-card">
+                        <div class="card-header"><h3>Response Priority</h3></div>
+                        <div class="priority-display" id="priority-display"></div>
+                    </div>
+
+                    <!-- Predictions -->
+                    <div class="card predictions-card">
+                        <div class="card-header"><h3>ML Predictions</h3></div>
+                        <div class="prediction-metrics" id="prediction-metrics"></div>
+                    </div>
+
+                    <!-- Similar Events -->
+                    <div class="card similar-card">
+                        <div class="card-header"><h3>Similar Historical Events</h3></div>
+                        <div class="similar-stats" id="similar-stats"></div>
+                        <div class="similar-table-wrap">
+                            <table class="similar-table" id="similar-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cause</th>
+                                        <th>Corridor</th>
+                                        <th>Duration</th>
+                                        <th>Closure</th>
+                                        <th>Similarity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="similar-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Scenarios -->
+                    <div class="card scenarios-card">
+                        <div class="card-header"><h3>Scenario Planning</h3></div>
+                        <div class="scenarios-grid" id="scenarios-grid"></div>
+                    </div>
+
+                    <!-- SHAP Explanation -->
+                    <div class="card shap-card">
+                        <div class="card-header"><h3>SHAP Explanations</h3></div>
+                        <div id="shap-explanation" class="shap-container">
+                            <button class="btn-secondary" id="btn-explain">Load Explanations</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Optimize Panel ───────────────────────────────────── -->
+        <section class="panel" id="panel-optimize">
+            <div class="card">
+                <div class="card-header"><h3>Multi-Event Resource Optimization</h3></div>
+                <p class="card-desc">Add multiple simultaneous events, then optimise personnel and barricade allocation across all of them.</p>
+
+                <div class="optimize-controls">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="opt-total-personnel">Total Personnel</label>
+                            <input type="number" id="opt-total-personnel" value="50" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="opt-total-barricades">Total Barricades</label>
+                            <input type="number" id="opt-total-barricades" value="80" min="1">
+                        </div>
+                        <button class="btn-secondary" id="btn-add-opt-event">+ Add Event</button>
+                        <button class="btn-predict" id="btn-run-optimize">Optimize</button>
+                    </div>
+                </div>
+
+                <div id="opt-events-list" class="opt-events-list"></div>
+                <div id="opt-results" class="opt-results" style="display:none;"></div>
+            </div>
+        </section>
+
+        <!-- ── Scenarios Panel ──────────────────────────────────── -->
+        <section class="panel" id="panel-scenarios">
+            <div class="card">
+                <div class="card-header"><h3>Scenario Planning Engine</h3></div>
+                <p class="card-desc">Explore "What if?" questions. Adjust resources and see projected EII changes.</p>
+
+                <form id="scenario-form" class="predict-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="sc-duration">Current Duration (min)</label>
+                            <input type="number" id="sc-duration" value="120" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-closure">Closure Probability</label>
+                            <input type="number" id="sc-closure" value="0.7" min="0" max="1" step="0.05">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-priority">Priority is High?</label>
+                            <select id="sc-priority">
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-location-risk">Location Risk (0–1)</label>
+                            <input type="number" id="sc-location-risk" value="0.5" min="0" max="1" step="0.05">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-delta-p">Add Officers</label>
+                            <input type="number" id="sc-delta-p" value="2" min="-10" max="20">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-delta-b">Add Barricades</label>
+                            <input type="number" id="sc-delta-b" value="0" min="-10" max="20">
+                        </div>
+                        <div class="form-group form-group-checkbox">
+                            <label>
+                                <input type="checkbox" id="sc-close-road"> Close Road Proactively
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-predict">Simulate Scenario</button>
+                </form>
+                <div id="scenario-result" style="display:none;"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ── Scripts ─────────────────────────────────────────────────── -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# ECIP Dependencies
+# Core ML
+catboost>=1.2
+scikit-learn>=1.3
+pandas>=2.0
+numpy>=1.24
+
+# Explainability
+shap>=0.42
+
+# Optimization
+ortools>=9.7
+
+# Geospatial
+geopy>=2.4
+
+# API
+fastapi>=0.104
+uvicorn[standard]>=0.24
+python-multipart>=0.0.6
+
+# Utilities
+joblib>=1.3
+python-dateutil>=2.8
