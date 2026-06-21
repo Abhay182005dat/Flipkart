@@ -5,7 +5,7 @@
  * panel navigation, prediction flow, scenario planning, and resource optimization.
  */
 
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = window.location.origin + "/api/v1";
 let map = null;
 let markersLayer = null;
 
@@ -80,7 +80,7 @@ function plotEventsOnMap(events) {
 // ── API Health ───────────────────────────────────────────────────────
 async function checkApiHealth() {
     try {
-        const res = await fetch("http://localhost:8000/health");
+        const res = await fetch(window.location.origin + "/health");
         if (res.ok) {
             setApiStatus(true);
             loadDashboardData();
